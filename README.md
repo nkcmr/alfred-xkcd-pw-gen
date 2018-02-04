@@ -1,6 +1,6 @@
 ### xkcd password generator for alfred
 
-easily generate super-secure and memorably passwords.
+easily generate super-secure and memorable passwords.
 
 obligatory xkcd link: https://xkcd.com/936/
 
