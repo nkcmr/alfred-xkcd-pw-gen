@@ -4,12 +4,15 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
 const (
 	numWordsPerSet = 4
+	numExtra       = 3 // +3 for (rand 0-9 number, rand word alignment, rand before/after word)
 	numSets        = 10
 )
 
@@ -272,17 +275,13 @@ type alfredItem struct {
 }
 
 func randset() ([]uint64, error) {
-	var (
-		m uint64
-		s = make([]uint64, numWordsPerSet)
-	)
-	m-- // underflow to get max uint64
-	for i := 0; i < numWordsPerSet; i++ {
+	s := make([]uint64, numWordsPerSet+numExtra)
+	for i := range s {
 		max := big.NewInt(int64(0))
-		max.SetUint64(m)
+		max.SetUint64(math.MaxUint64)
 		ri, err := rand.Int(rand.Reader, max)
 		if err != nil {
-			return s, err
+			return nil, err
 		}
 		s[i] = ri.Uint64()
 	}
@@ -298,10 +297,21 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		// spew.Dump(s)
 		set := make([]string, numWordsPerSet)
-		for idx, _int := range s {
-			set[idx] = words[_int%uint64(len(words))]
+		for idx := range set {
+			_int := s[idx]
+			word := words[_int%uint64(len(words))]
+			set[idx] = strings.ToUpper(word[0:1]) + word[1:]
 		}
+		randint := s[numWordsPerSet] % 10
+		randpos := s[numWordsPerSet+1] % numWordsPerSet
+		randalign := int64(s[numWordsPerSet+2] % 2)
+		newword := [2]string{}
+		newword[abs(randalign-1)] = set[randpos]
+		newword[randalign] = strconv.FormatInt(int64(randint), 10)
+		set[randpos] = strings.Join(newword[:], "")
+
 		pw := strings.Join(set, ".")
 		output.Items[i] = alfredItem{
 			Title: pw,
@@ -315,4 +325,8 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(string(dat))
+}
+
+func abs(i int64) int64 {
+	return int64(math.Abs(float64(i)))
 }
